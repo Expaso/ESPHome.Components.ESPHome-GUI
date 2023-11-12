@@ -27,9 +27,7 @@ class DisplayBuffer : public Display {
 
 #ifdef USE_GUI
   // public DisplayBuffer methods for LVGL
-  virtual void write_display_data() = 0;
   virtual void update() = 0;
-  virtual size_t get_buffer_length_() = 0;
   uint8_t *get_buffer() { return this->buffer_; }
 #endif
 

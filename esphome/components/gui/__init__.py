@@ -16,6 +16,7 @@ DEPENDENCIES = ["display"]
 gui_ns = cg.esphome_ns.namespace("gui")
 
 CONF_DISPLAY_ID = "display_id"
+CONF_SQUARELINE_FOLDER = "squareline_folder"
 CONF_SWITCH_ID = "switch_id"
 CONF_ITEMS = "items"
 CONF_LABEL = "label"
@@ -91,6 +92,7 @@ GUI_SCHEMA = cv.Schema(
         cv.Optional(CONF_ITEMS): cv.All(
             cv.ensure_list(GUI_ITEM_SCHEMA),
         ),
+        cv.Optional(CONF_SQUARELINE_FOLDER): cv.string,
     }
 )
 
@@ -139,9 +141,17 @@ async def to_code(config):
     # other generated files.
     lv_conf_path = os.path.join(component_dir, 'lv_conf.h')
     core.CORE.add_job(cfg.add_includes, [lv_conf_path])
- 
+
+    # Add Quareline folder if needed
+    squareline_folder = config[CONF_SQUARELINE_FOLDER]
+    if (not squareline_folder is None):
+        uiHeader = os.path.join(squareline_folder, 'ui.h')
+        #core.CORE.add_job(cfg.add_includes, [squareline_folder])
+        cg.add_define("USE_SQUARELINE")
+
     cg.add_library("lvgl/lvgl", "^8.3")
     cg.add_platformio_option("build_flags", LVGL_BUILD_FLAGS)
+    cg.add_define("USE_TIMEX")
     cg.add_platformio_option("build_flags", ["-D LV_CONF_PATH='"+lv_conf_path+"'"])
     gui = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(gui, config)

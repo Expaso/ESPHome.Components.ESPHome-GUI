@@ -7,9 +7,9 @@ static const char *const TAG = "gui.object";
 
 inline void GuiObject::update() {
   if (this->obj == nullptr) return;
-  ESP_LOGV(TAG, "\tsetting object's position and size");
-  ESP_LOGV(TAG, "\t\tcoordinates: (%i, %i)", this->x_, this->y_);
-  ESP_LOGV(TAG, "\t\tdimensions: (%i, %i)", this->w_, this->h_);
+  ESP_LOGVV(TAG, "\tsetting object's position and size");
+  ESP_LOGVV(TAG, "\t\tcoordinates: (%i, %i)", this->x_, this->y_);
+  ESP_LOGVV(TAG, "\t\tdimensions: (%i, %i)", this->w_, this->h_);
   lv_obj_set_pos(this->obj, this->x_, this->y_);
   lv_obj_set_size(this->obj, this->w_, this->h_);
 }
@@ -41,6 +41,7 @@ void GuiLabel::setup() {
     ESP_LOGW(TAG, "Failed to get screen pointer");
     return;
   }
+
   this->obj = lv_label_create(screen);
   this->update();
 }
@@ -62,19 +63,19 @@ void GuiLabel::print(int x, int y, const char *text) {
 }
 
 #ifdef USE_TIMEX
-void GuiLabel::strftime(const char *format, time::ESPTime time) {
+void GuiLabel::strftime(const char *format, ESPTime time) {
   char buffer[64] = {0};
   size_t ret = time.strftime(buffer, sizeof(buffer), format);
 
-  ESP_LOGVV(TAG, "Updating label's text to: %s", buffer);
-  ESP_LOGVV(TAG, "\tstrftime result: %i", ret);
+  ESP_LOGV(TAG, "Updating label's text to: %s", buffer);
+  ESP_LOGV(TAG, "\tstrftime result: %i", ret);
 
   if (ret > 0) {
     this->set_text(buffer);
     this->update();
   }
 }
-void GuiLabel::strftime(int x, int y, const char *format, time::ESPTime time) {
+void GuiLabel::strftime(int x, int y, const char *format, ESPTime time) {
   this->strftime(format, time);
   this->update();
 }
