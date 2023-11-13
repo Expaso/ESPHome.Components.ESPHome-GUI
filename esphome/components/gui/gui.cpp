@@ -1,5 +1,7 @@
 #include "gui.h"
-#include <string_view>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 
 #ifdef USE_SQUARELINE
 #include "ui.h"
@@ -28,14 +30,18 @@ namespace esphome
       }
 #endif
 
+      static void flush_ready() {
+        lv_disp_flush_ready(&lv_disp_drv);
+      }
+
+
       // Callback from lvgl to update the display
       static void lv_drv_refresh(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
-      {
-        //TODO: Only update the area that has changed 
+      {      
         auto component = (DisplayBuffer *)disp_drv->user_data;
-        component->update();
-        lv_disp_flush_ready(disp_drv);
+        component->updateArea(area->x1, area->y1, area->x2, area->y2, (uint16_t*) disp_drv->draw_buf->buf_act, lv_shim::flush_ready);
       }
+
 
       // Callback from lvgl to read the touchscreen
       static void lv_touchscreen_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
@@ -45,6 +51,7 @@ namespace esphome
         data->point.x = tp.x;
         data->point.y = tp.y;
         data->state = (lv_indev_state_t) tp.state;
+        data->continue_reading = false;
       }
 
       // LVGL Inistalization
@@ -52,27 +59,28 @@ namespace esphome
       {
         auto db = gui->get_displayBuffer();
 
-        // Get the buffer-reference from ESPHome's DisplayBuffer
-        uint8_t *buf = db->get_buffer();
         uint32_t len = db->get_width() * db->get_height(); // For 16 bit color depth
 
-        if (buf == nullptr)
-        {
-          ESP_LOGE(TAG, "Display Buffer is not initialized.");
-          return nullptr;
-        }
+
+        #ifdef ESP32
+            auto *buf1 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * len, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+            auto *buf2 = (lv_color_t *)heap_caps_malloc(sizeof(lv_color_t) * len, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        #else
+            auto *buf1 = (lv_color_t *)malloc(sizeof(lv_color_t) * len);
+            auto *buf2 = (lv_color_t *)malloc(sizeof(lv_color_t) * len);
+        #endif
 
         // Initialize LVGL
         lv_init();
 
         // Initialize the display buffer and driver
-        lv_disp_draw_buf_init(&lv_disp_buf, buf, NULL, len);
+        lv_disp_draw_buf_init(&lv_disp_buf, buf1, buf2, len);
         lv_disp_drv_init(&lv_disp_drv);
 
         // Set the viewport area according to the display orientation
         lv_disp_drv.hor_res = lv_disp_drv.rotated == 0 || lv_disp_drv.rotated == 2 ? db->get_width() : db->get_height();
         lv_disp_drv.ver_res = lv_disp_drv.rotated == 0 || lv_disp_drv.rotated == 2 ? db->get_height() : db->get_width();
-        lv_disp_drv.direct_mode = true;
+        lv_disp_drv.direct_mode = false;
         lv_disp_drv.full_refresh = false; // Will trigger the watchdog if set.
         lv_disp_drv.flush_cb = lv_drv_refresh;
         lv_disp_drv.draw_buf = &lv_disp_buf;
@@ -103,6 +111,7 @@ namespace esphome
 
         return disp;
       }
+
     } // namespace lv_shim
 
     void GuiComponent::setup()
@@ -121,7 +130,7 @@ namespace esphome
       ui_init();
 #endif
 
-      // this->high_freq_.start();
+      this->high_freq_.start();
     }
 
     void GuiComponent::loop()
@@ -129,8 +138,8 @@ namespace esphome
       //Handle LVGL takss during the loop
       if (this->lv_disp_ != nullptr)
       {
-        lv_timer_handler();
-        lv_task_handler();
+        lv_timer_handler_run_in_period(8);
+        //lv_timer_handler();
       }
     }
 

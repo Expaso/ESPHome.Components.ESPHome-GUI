@@ -28,6 +28,7 @@ class DisplayBuffer : public Display {
 #ifdef USE_GUI
   // public DisplayBuffer methods for LVGL
   virtual void update() = 0;
+  virtual void updateArea(int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t *buffer, void (*ready_callback)(void)) = 0;  
   uint8_t *get_buffer() { return this->buffer_; }
 #endif
 
@@ -35,7 +36,6 @@ class DisplayBuffer : public Display {
   virtual void draw_absolute_pixel_internal(int x, int y, Color color) = 0;
 
   void init_internal_(uint32_t buffer_length);
-
   uint8_t *buffer_{nullptr};
 };
 
