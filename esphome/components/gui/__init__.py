@@ -7,7 +7,7 @@ import esphome.core as core
 import esphome.core.config as cfg
 from esphome.const import CONF_DIMENSIONS, CONF_ID, CONF_POSITION, CONF_TYPE
 
-from esphome.components import display, switch
+from esphome.components import display, switch, touchscreen
 
 CODEOWNERS = ["@lukasz-tuz"]
 
@@ -23,6 +23,7 @@ CONF_LABEL = "label"
 CONF_CHECKBOX = "checkbox"
 CONF_DESCRIPTION = "description"
 CONF_TEXT = "text"
+CONF_TOUCHSCREEN_ID = "touchscreen_id"
 
 
 GuiComponent = gui_ns.class_("GuiComponent", cg.Component)
@@ -93,6 +94,8 @@ GUI_SCHEMA = cv.Schema(
             cv.ensure_list(GUI_ITEM_SCHEMA),
         ),
         cv.Optional(CONF_SQUARELINE_FOLDER): cv.string,
+        cv.Optional(CONF_TOUCHSCREEN_ID): cv.use_id(touchscreen.Touchscreen),
+
     }
 )
 
@@ -143,10 +146,8 @@ async def to_code(config):
     core.CORE.add_job(cfg.add_includes, [lv_conf_path])
 
     # Add Quareline folder if needed
-    squareline_folder = config[CONF_SQUARELINE_FOLDER]
-    if (not squareline_folder is None):
-        uiHeader = os.path.join(squareline_folder, 'ui.h')
-        #core.CORE.add_job(cfg.add_includes, [squareline_folder])
+    if CONF_SQUARELINE_FOLDER in config:   
+        squareline_folder = config[CONF_SQUARELINE_FOLDER]
         cg.add_define("USE_SQUARELINE")
 
     cg.add_library("lvgl/lvgl", "^8.3")
@@ -157,9 +158,12 @@ async def to_code(config):
     await cg.register_component(gui, config)
 
     disp = await cg.get_variable(config[CONF_DISPLAY_ID])
-
     cg.add(gui.set_display(disp))
-    cg.add_define("USE_GUI")
+    
+    if CONF_TOUCHSCREEN_ID in config:
+        touch = await cg.get_variable(config[CONF_TOUCHSCREEN_ID])
+        cg.add(gui.set_touchscreen(touch))
 
+    cg.add_define("USE_GUI")
     if CONF_ITEMS in config:
         await gui_items_to_code(config[CONF_ITEMS])
