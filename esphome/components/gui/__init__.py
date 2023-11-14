@@ -16,7 +16,6 @@ DEPENDENCIES = ["display"]
 gui_ns = cg.esphome_ns.namespace("gui")
 
 CONF_DISPLAY_ID = "display_id"
-CONF_SQUARELINE_FOLDER = "squareline_folder"
 CONF_SWITCH_ID = "switch_id"
 CONF_ITEMS = "items"
 CONF_LABEL = "label"
@@ -93,7 +92,6 @@ GUI_SCHEMA = cv.Schema(
         cv.Optional(CONF_ITEMS): cv.All(
             cv.ensure_list(GUI_ITEM_SCHEMA),
         ),
-        cv.Optional(CONF_SQUARELINE_FOLDER): cv.string,
         cv.Optional(CONF_TOUCHSCREEN_ID): cv.use_id(touchscreen.Touchscreen),
 
     }
@@ -144,11 +142,6 @@ async def to_code(config):
     # other generated files.
     lv_conf_path = os.path.join(component_dir, 'lv_conf.h')
     core.CORE.add_job(cfg.add_includes, [lv_conf_path])
-
-    # Add Quareline folder if needed
-    if CONF_SQUARELINE_FOLDER in config:   
-        squareline_folder = config[CONF_SQUARELINE_FOLDER]
-        cg.add_define("USE_SQUARELINE")
 
     cg.add_library("lvgl/lvgl", "^8.3")
     cg.add_platformio_option("build_flags", LVGL_BUILD_FLAGS)

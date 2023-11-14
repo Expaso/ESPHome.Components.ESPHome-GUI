@@ -2,11 +2,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-
-#ifdef USE_SQUARELINE
-#include "ui.h"
-#endif
-
 namespace esphome
 {
   namespace gui
@@ -124,11 +119,6 @@ namespace esphome
         this->mark_failed();
         return;
       }
-
-// Init the UI if SQARELINE is used
-#ifdef USE_SQUARELINE
-      ui_init();
-#endif
 
       this->high_freq_.start();
     }
