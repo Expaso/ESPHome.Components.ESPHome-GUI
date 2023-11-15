@@ -11,12 +11,14 @@ namespace esphome
     using namespace display;
     using namespace touchscreen;
 
-    // A shim to allow lvgl to work with the ESPHome display buffer
+    // A shim to allow lvgl to work nice with the ESPHome display buffer and display drivers
     namespace lv_shim
     {
+      static TaskHandle_t lvglTickTaskHandle = nullptr;      
       static lv_disp_drv_t lv_disp_drv;
       static lv_disp_draw_buf_t lv_disp_buf;
       static lv_indev_drv_t lv_touch_drv;
+      //static volatile UBaseType_t  uxHighWaterMark;
 
 #if LV_USE_LOG
       static void lv_esp_log(const char *buf)
@@ -29,6 +31,14 @@ namespace esphome
         lv_disp_flush_ready(&lv_disp_drv);
       }
 
+      // A background task used to let lvgl render it's thing.
+      static void IRAM_ATTR lvgl_tick_task(void *pv_params) {
+        while(true) {
+          //uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
+          auto sleep = lv_timer_handler();
+          vTaskDelay(sleep * portTICK_PERIOD_MS);
+        }
+      }
 
       // Callback from lvgl to update the display
       static void lv_drv_refresh(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
@@ -103,7 +113,8 @@ namespace esphome
 #if LV_USE_LOG
         lv_log_register_print_cb(lv_esp_log);
 #endif
-
+        //Run on the Application Core, on prio (Display driver's affinity is on IO core 0, slightly lower prio due to being nice to Wifi and BT)
+        //xTaskCreatePinnedToCore(lv_shim::lvgl_tick_task, "lvgl_tick", 4096, NULL, 10, &lvglTickTaskHandle, 1); //tskNO_AFFINITY
         return disp;
       }
 
@@ -161,7 +172,7 @@ namespace esphome
       return LV_DISP_ROT_NONE;
     }
 
-    void GuiComponent::touch(TouchPoint tp)
+    void HOT GuiComponent::touch(TouchPoint tp)
     {
       this->lastTouchpoint_ = tp;
       this->lastTouchpoint_.state = LV_INDEV_STATE_PR;
