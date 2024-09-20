@@ -88,7 +88,7 @@ GUI_ITEM_SCHEMA = cv.typed_schema(
 GUI_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.declare_id(GuiComponent),
-        cv.GenerateID(CONF_DISPLAY_ID): cv.use_id(display.DisplayBuffer),
+        cv.GenerateID(CONF_DISPLAY_ID): cv.use_id(display.Display),
         cv.Optional(CONF_ITEMS): cv.All(
             cv.ensure_list(GUI_ITEM_SCHEMA),
         ),
